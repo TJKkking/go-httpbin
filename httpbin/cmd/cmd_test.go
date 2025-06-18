@@ -37,7 +37,7 @@ const usage = `Usage of go-httpbin:
   -max-duration duration
     	Maximum duration a response may take (default 10s)
   -port int
-    	Port to listen on (default 8080)
+    	Port to listen on (default 80)
   -prefix string
     	Path prefix (empty or start with slash and does not end with slash)
   -srv-max-header-bytes int
