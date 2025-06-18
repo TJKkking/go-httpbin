@@ -12,5 +12,5 @@ FROM gcr.io/distroless/base
 
 COPY --from=build /go/src/github.com/mccutchen/go-httpbin/dist/go-httpbin* /bin/
 
-EXPOSE 80
+EXPOSE 8080
 CMD ["/bin/go-httpbin"]

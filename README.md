@@ -23,7 +23,7 @@ automatically published to these public registries for every tagged release:
 $ docker run -P ghcr.io/mccutchen/go-httpbin
 
 # Run https server
-$ docker run -e HTTPS_CERT_FILE='/tmp/server.crt' -e HTTPS_KEY_FILE='/tmp/server.key' -p 80:80 -v /tmp:/tmp ghcr.io/mccutchen/go-httpbin
+$ docker run -e HTTPS_CERT_FILE='/tmp/server.crt' -e HTTPS_KEY_FILE='/tmp/server.key' -p 8080:8080 -v /tmp:/tmp ghcr.io/mccutchen/go-httpbin
 ```
 
 ### Kubernetes
@@ -102,7 +102,7 @@ variables (or a combination of the two):
 | `-log-format` | `LOG_FORMAT` | Log format (text or json) | "text" |
 | `-max-body-size` | `MAX_BODY_SIZE` | Maximum size of request or response, in bytes | 1048576 |
 | `-max-duration` | `MAX_DURATION` | Maximum duration a response may take | 10s |
-| `-port` | `PORT` | Port to listen on | 80 |
+| `-port` | `PORT` | Port to listen on | 8080 |
 | `-prefix` | `PREFIX` | Prefix of path to listen on (must start with slash and does not end with slash) | |
 | `-srv-max-header-bytes` | `SRV_MAX_HEADER_BYTES` | Value to use for the http.Server's MaxHeaderBytes option | 16384 |
 | `-srv-read-header-timeout` | `SRV_READ_HEADER_TIMEOUT` | Value to use for the http.Server's ReadHeaderTimeout option | 1s |

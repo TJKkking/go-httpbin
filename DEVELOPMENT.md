@@ -9,7 +9,7 @@ change:
     make run
     make watch
 
-By default, the server will listen on `http://127.0.0.1:80`, but the host,
+By default, the server will listen on `http://127.0.0.1:8080`, but the host,
 port, or any other [configuration option][config] may be overridden by
 specifying the relevant environment variables:
 

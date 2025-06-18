@@ -19,7 +19,7 @@ STATICCHECK := go run honnef.co/go/tools/cmd/staticcheck@2025.1.1
 
 # Host and port to use when running locally via `make run` or `make watch`
 HOST ?= 127.0.0.1
-PORT ?= 80
+PORT ?= 8080
 
 
 # =============================================================================

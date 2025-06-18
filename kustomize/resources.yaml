@@ -10,7 +10,7 @@ spec:
           image: ghcr.io/mccutchen/go-httpbin
           ports:
             - name: http
-              containerPort: 80
+              containerPort: 8080
               protocol: TCP
           livenessProbe:
             httpGet:
