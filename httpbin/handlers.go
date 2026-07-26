@@ -170,9 +170,12 @@ func (h *HTTPBin) Deflate(w http.ResponseWriter, r *http.Request) {
 
 // IP echoes the IP address of the incoming request
 func (h *HTTPBin) IP(w http.ResponseWriter, r *http.Request) {
-	writeJSON(http.StatusOK, w, &ipResponse{
-		Origin: getClientIP(r),
-	})
+	ip := getClientIP(r)
+	if r.URL.Query().Get("format") == "text" {
+		writeResponse(w, http.StatusOK, textContentType, []byte(ip+"\n"))
+		return
+	}
+	writeJSON(http.StatusOK, w, &ipResponse{Origin: ip})
 }
 
 // UserAgent echoes the incoming User-Agent header
@@ -469,20 +472,11 @@ func (h *HTTPBin) RedirectTo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// If we're given a URL that includes a domain name and we have a list of
-	// allowed domains, ensure that the domain is allowed.
-	//
-	// Note: This checks the hostname directly rather than using the net.URL's
-	// IsAbs() method, because IsAbs() will return false for URLs that omit
-	// the scheme but include a domain name, like "//evil.com" and it's
-	// important that we validate the domain in these cases as well.
-	if u.Hostname() != "" && len(h.AllowedRedirectDomains) > 0 {
-		if _, ok := h.AllowedRedirectDomains[u.Hostname()]; !ok {
-			// for this error message we do not use our standard JSON response
-			// because we want it to be more obviously human readable.
-			writeResponse(w, http.StatusForbidden, "text/plain", []byte(h.forbiddenRedirectError))
-			return
-		}
+	if !h.redirectAllowed(u) {
+		// for this error message we do not use our standard JSON response
+		// because we want it to be more obviously human readable.
+		writeResponse(w, http.StatusForbidden, "text/plain", []byte(h.forbiddenRedirectError))
+		return
 	}
 
 	statusCode := http.StatusFound
@@ -497,6 +491,22 @@ func (h *HTTPBin) RedirectTo(w http.ResponseWriter, r *http.Request) {
 	h.doRedirect(w, u.String(), statusCode)
 }
 
+// redirectAllowed checks whether the given redirect target is permitted.
+//
+// If a hostname allowlist is configured and the target is an absolute URL,
+// its hostname must be in the allowlist.
+//
+// Otherwise, the target must be either an absolute or root-relative URL.
+func (h *HTTPBin) redirectAllowed(target *url.URL) bool {
+	if len(h.AllowedRedirectDomains) > 0 {
+		if host := target.Hostname(); host != "" {
+			_, ok := h.AllowedRedirectDomains[host]
+			return ok
+		}
+	}
+	return target.IsAbs() || strings.HasPrefix(target.Path, "/")
+}
+
 // Cookies responds with the cookies in the incoming request
 func (h *HTTPBin) Cookies(w http.ResponseWriter, r *http.Request) {
 	resp := cookiesResponse{Cookies: make(map[string]string)}
@@ -507,31 +517,23 @@ func (h *HTTPBin) Cookies(w http.ResponseWriter, r *http.Request) {
 }
 
 // SetCookies sets cookies as specified in query params and redirects to
-// Cookies endpoint
+// Cookies endpoint. Cookie attributes may be overridden via attr[Name] query
+// params (e.g. attr[Secure]=true, attr[Path]=/foo).
 func (h *HTTPBin) SetCookies(w http.ResponseWriter, r *http.Request) {
-	params := r.URL.Query()
-	for k := range params {
-		http.SetCookie(w, &http.Cookie{
-			Name:     k,
-			Value:    params.Get(k),
-			HttpOnly: true,
-		})
+	for _, cookie := range parseCookies(r) {
+		http.SetCookie(w, &cookie)
 	}
 	h.doRedirect(w, "/cookies", http.StatusFound)
 }
 
 // DeleteCookies deletes cookies specified in query params and redirects to
-// Cookies endpoint
+// Cookies endpoint. Cookie attributes may be overridden via attr[Name] query
+// params (e.g. attr[Secure]=true, attr[Path]=/foo).
 func (h *HTTPBin) DeleteCookies(w http.ResponseWriter, r *http.Request) {
-	params := r.URL.Query()
-	for k := range params {
-		http.SetCookie(w, &http.Cookie{
-			Name:     k,
-			Value:    params.Get(k),
-			HttpOnly: true,
-			MaxAge:   -1,
-			Expires:  time.Now().Add(-1 * 24 * 365 * time.Hour),
-		})
+	for _, cookie := range parseCookies(r) {
+		cookie.MaxAge = -1
+		cookie.Expires = time.Now().Add(-1 * 24 * 365 * time.Hour)
+		http.SetCookie(w, &cookie)
 	}
 	h.doRedirect(w, "/cookies", http.StatusFound)
 }
@@ -1308,6 +1310,11 @@ func (h *HTTPBin) Hostname(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(http.StatusOK, w, hostnameResponse{
 		Hostname: h.hostname,
 	})
+}
+
+// Version - returns version info.
+func (h *HTTPBin) Version(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(http.StatusOK, w, h.version)
 }
 
 // SSE writes a stream of events over a duration after an optional
